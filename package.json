@@ -1,0 +1,22 @@
+{
+  "name": "chordflow",
+  "version": "0.1.0",
+  "private": true,
+  "description": "键盘练习辅助 PWA 工具",
+  "scripts": {
+    "dev": "pnpm -r --parallel run dev",
+    "dev:frontend": "pnpm --filter @chordflow/frontend run dev",
+    "dev:backend": "pnpm --filter @chordflow/backend run dev",
+    "build": "pnpm -r run build",
+    "lint": "pnpm -r run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.2.5",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}

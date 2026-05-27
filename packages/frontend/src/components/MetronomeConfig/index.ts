@@ -1,0 +1,1 @@
+export { MetronomeConfig } from './MetronomeConfig';

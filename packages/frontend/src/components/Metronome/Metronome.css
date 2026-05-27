@@ -1,0 +1,174 @@
+.metronome {
+  background: #1a1a1a;
+  border-radius: 12px;
+  padding: 2rem;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.metronome h2 {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.5rem;
+  text-align: center;
+}
+
+.metronome-display {
+  margin-bottom: 2rem;
+}
+
+.beat-indicators {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.beat-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #333;
+  transition: background-color 0.1s ease;
+}
+
+.beat-dot.accent {
+  background: #555;
+}
+
+.beat-dot.active {
+  background: #646cff;
+  transform: scale(1.2);
+}
+
+.beat-dot.active.accent {
+  background: #ff6464;
+}
+
+.metronome-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.control-group label {
+  min-width: 80px;
+  text-align: right;
+  font-weight: 500;
+}
+
+.bpm-slider {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.bpm-slider input[type="range"] {
+  flex: 1;
+  height: 8px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #333;
+  border-radius: 4px;
+  outline: none;
+}
+
+.bpm-slider input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: #646cff;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.bpm-value {
+  min-width: 40px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #646cff;
+  text-align: center;
+}
+
+.control-group select {
+  flex: 1;
+  padding: 0.5rem;
+  background: #333;
+  color: white;
+  border: 1px solid #555;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.time-signature-selectors {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.time-signature-selectors select {
+  flex: 1;
+}
+
+.time-signature-divider {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #888;
+}
+
+.play-button {
+  margin-top: 1rem;
+  padding: 0.75rem 2rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+  background: #646cff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.play-button:hover {
+  background: #535bf2;
+}
+
+.play-button.playing {
+  background: #ff6464;
+}
+
+.play-button.playing:hover {
+  background: #e55555;
+}
+
+@media (prefers-color-scheme: light) {
+  .metronome {
+    background: #f5f5f5;
+  }
+
+  .beat-dot {
+    background: #ddd;
+  }
+
+  .beat-dot.accent {
+    background: #bbb;
+  }
+
+  .bpm-slider input[type="range"] {
+    background: #ddd;
+  }
+
+  .control-group select {
+    background: #fff;
+    color: #213547;
+    border-color: #ccc;
+  }
+}

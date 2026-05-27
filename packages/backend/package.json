@@ -1,0 +1,22 @@
+{
+  "name": "@chordflow/backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ChordFlow 后端服务",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "eslint src --ext .ts"
+  },
+  "dependencies": {
+    "@chordflow/shared": "workspace:*",
+    "fastify": "^4.28.0",
+    "@fastify/cors": "^9.0.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "tsx": "^4.15.7"
+  }
+}

@@ -1,0 +1,67 @@
+.practice-menu {
+  text-align: center;
+}
+
+.practice-menu h2 {
+  font-size: 1.8rem;
+  margin: 0 0 2rem 0;
+}
+
+.practice-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+}
+
+.practice-card {
+  background: #1a1a1a;
+  border: 2px solid #333;
+  border-radius: 12px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  color: inherit;
+  font: inherit;
+}
+
+.practice-card:hover {
+  border-color: #646cff;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(100, 108, 255, 0.2);
+}
+
+.practice-card:active {
+  transform: translateY(0);
+}
+
+.card-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.practice-card h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.3rem;
+}
+
+.practice-card p {
+  margin: 0.25rem 0;
+  font-size: 0.9rem;
+  color: #888;
+}
+
+@media (prefers-color-scheme: light) {
+  .practice-card {
+    background: #fff;
+    border-color: #e0e0e0;
+  }
+
+  .practice-card:hover {
+    border-color: #535bf2;
+  }
+
+  .practice-card p {
+    color: #666;
+  }
+}
