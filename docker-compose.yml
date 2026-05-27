@@ -1,0 +1,26 @@
+services:
+  chordflow:
+    # 本地构建时使用
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # 远程部署时使用预构建镜像
+    # image: ghcr.io/zerodevi1/chordflow:latest
+    container_name: chordflow
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+    # SQLite 数据持久化
+    volumes:
+      - chordflow-data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  chordflow-data:
