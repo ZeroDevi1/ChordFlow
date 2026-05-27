@@ -30,15 +30,11 @@ FROM node:22-alpine AS production
 
 WORKDIR /app
 
-# 仅复制运行所需产物
-COPY --from=builder /app/packages/backend/dist ./packages/backend/dist
-COPY --from=builder /app/packages/backend/package.json ./packages/backend/package.json
-COPY --from=builder /app/packages/frontend/dist ./packages/frontend/dist
-COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
-COPY --from=builder /app/packages/shared/package.json ./packages/shared/package.json
+# 直接复制构建产物与全部依赖（保持 workspace 链接有效）
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/packages ./packages
 COPY --from=builder /app/pnpm-workspace.yaml ./
 COPY --from=builder /app/package.json ./
-COPY --from=builder /app/node_modules ./node_modules
 
 # 后端端口
 EXPOSE 3001

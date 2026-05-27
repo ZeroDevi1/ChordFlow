@@ -38,7 +38,6 @@ export function MetronomeConfig({
   const [subdivision, setSubdivision] = useState<SubdivisionType>(initialSubdivision);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentBeat, setCurrentBeat] = useState(0);
-  const [beatCountInMeasure, setBeatCountInMeasure] = useState(0);
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const timerRef = useRef<number | null>(null);
@@ -96,14 +95,12 @@ export function MetronomeConfig({
       }
       setIsPlaying(false);
       setCurrentBeat(0);
-      setBeatCountInMeasure(0);
     } else {
       const interval = getBeatInterval();
       let beat = 0;
       
       playBeat(true);
       setCurrentBeat(1);
-      setBeatCountInMeasure(1);
       beat = 1;
       
       timerRef.current = window.setInterval(() => {
