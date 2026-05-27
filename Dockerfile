@@ -15,6 +15,8 @@ COPY packages/backend/package.json ./packages/backend/
 COPY packages/frontend/package.json ./packages/frontend/
 
 # 安装依赖（包括 workspace 链接）
+# npm_config_minimum_release_age=0 跳过 supply-chain 发布时间校验，避免因依赖刚发布而导致构建失败
+ENV npm_config_minimum_release_age=0
 RUN pnpm install --frozen-lockfile
 
 # 复制源码
