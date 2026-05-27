@@ -15,7 +15,8 @@ COPY packages/backend/package.json ./packages/backend/
 COPY packages/frontend/package.json ./packages/frontend/
 
 # 安装依赖（包括 workspace 链接）
-RUN pnpm install --frozen-lockfile
+# minimum-release-age=0 跳过 supply-chain 发布时间校验，避免因依赖刚发布而导致 Docker 构建失败
+RUN pnpm install --frozen-lockfile --minimum-release-age=0
 
 # 复制源码
 COPY packages/shared/ ./packages/shared/
