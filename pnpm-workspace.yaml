@@ -1,2 +1,5 @@
 packages:
   - "packages/*"
+
+# 关闭依赖发布时间冷却窗口，避免刚发布的传递依赖阻塞 Docker/CI 的冻结安装。
+minimumReleaseAge: 0

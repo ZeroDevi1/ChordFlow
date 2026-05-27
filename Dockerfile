@@ -3,8 +3,8 @@
 
 FROM node:22-alpine AS builder
 
-# 安装 pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# 安装仓库固定的 pnpm 版本，避免 pnpm@latest 默认策略变化影响 CI 构建
+RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 
 WORKDIR /app
 
