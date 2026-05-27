@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import * as alphaTab from '@coderline/alphatab';
 import { NoteName } from '@chordflow/shared';
-import type { NoteWithDuration, BassChord } from './StaffNotation';
+import type { NoteWithDuration, BassChord, TrebleChord } from './StaffNotation';
 import { toAlphaTex } from './noteToAlphaTex';
 
 /** alphaTab 字体文件目录（public 目录下） */
@@ -9,8 +9,10 @@ const FONT_DIRECTORY = '/alphatab-font/';
 
 /** AlphaTabStaffNotation 组件属性（与 StaffNotation 保持一致） */
 interface AlphaTabStaffNotationProps {
-  /** 高音谱音符列表 */
-  notes: NoteWithDuration[];
+  /** 高音谱音符列表（单音旋律） */
+  notes?: NoteWithDuration[];
+  /** 高音谱和弦列表（右手柱式和弦，与 notes 二选一） */
+  trebleChords?: TrebleChord[];
   /** 低音谱和弦列表 */
   bassChords?: BassChord[];
   /** 根音名称（用于显示调号） */
@@ -38,20 +40,30 @@ interface AlphaTabStaffNotationProps {
  * 驱动 alphaTab 渲染引擎，支持更准确的音符排版和响应式布局。
  */
 export function AlphaTabStaffNotation({
-  notes,
+  notes = [],
+  trebleChords,
   bassChords = [],
   keySignature,
   beatsPerMeasure = 4,
   measuresPerRow = 4,
   showInlineAccidentals = true,
-  width = 520,
 }: AlphaTabStaffNotationProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const apiRef = useRef<alphaTab.AlphaTabApi | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // 用 JSON.stringify 创建稳定的依赖字符串，避免数组引用变化触发重复渲染
+  const tex = toAlphaTex({
+    notes,
+    trebleChords,
+    bassChords,
+    keySignature,
+    beatsPerMeasure,
+    showInlineAccidentals,
+  });
+
   useEffect(() => {
-    if (!containerRef.current || notes.length === 0) return;
+    if (!containerRef.current || !tex) return;
 
     // 清理上一次的 api 实例
     if (apiRef.current) {
@@ -61,19 +73,6 @@ export function AlphaTabStaffNotation({
 
     // 清空容器内容
     containerRef.current.innerHTML = '';
-
-    // 生成 alphaTex 字符串
-    const tex = toAlphaTex({
-      notes,
-      bassChords,
-      keySignature,
-      beatsPerMeasure,
-      showInlineAccidentals,
-    });
-
-    if (!tex) return;
-
-    console.log('[AlphaTabStaffNotation] alphaTex:', tex);
 
     // 创建 alphaTab API 实例
     const api = new alphaTab.AlphaTabApi(containerRef.current, {
@@ -107,6 +106,11 @@ export function AlphaTabStaffNotation({
     apiRef.current = api;
     setIsLoading(true);
 
+    // 加载完成后隐藏力度标记（如 "f"）
+    api.scoreLoaded.on(score => {
+      score.stylesheet.hideDynamics = true;
+    });
+
     // 监听渲染完成
     api.renderFinished.on(() => {
       setIsLoading(false);
@@ -125,7 +129,7 @@ export function AlphaTabStaffNotation({
       api.destroy();
       apiRef.current = null;
     };
-  }, [notes, bassChords, keySignature, beatsPerMeasure, measuresPerRow, showInlineAccidentals, width]);
+  }, [tex, measuresPerRow]);
 
   return (
     <div className="staff-notation alpha-tab-notation" style={{ position: 'relative' }}>

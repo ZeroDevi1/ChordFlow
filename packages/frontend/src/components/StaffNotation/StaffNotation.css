@@ -20,8 +20,46 @@
   }
 }
 
+/* 和弦名称覆盖层 */
+.chord-name-overlay {
+  position: absolute;
+  top: 60px;
+  left: 30px;
+  display: flex;
+  gap: 80px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.chord-name-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #646cff;
+  background: rgba(26, 26, 26, 0.9);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+@media (prefers-color-scheme: light) {
+  .chord-name-label {
+    color: #535bf2;
+    background: rgba(245, 245, 245, 0.9);
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   .vexflow-container svg {
     color: rgba(255, 255, 255, 0.85);
+  }
+
+  /* alphaTab 默认渲染白底黑音符，暗色模式下反转整个容器：
+     白底 → 黑底，黑音符/线 → 白音符/线 */
+  .staff-notation.alpha-tab-notation {
+    filter: invert(1);
+  }
+
+  /* 暗色模式下和弦名称也需要反转回来 */
+  .chord-name-overlay .chord-name-label {
+    filter: invert(1);
   }
 }

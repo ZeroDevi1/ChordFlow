@@ -19,6 +19,12 @@ export interface BassChord {
   duration?: NoteDuration;
 }
 
+/** 高音谱和弦（右手柱式和弦） */
+export interface TrebleChord {
+  notes: Note[];
+  duration: NoteDuration;
+}
+
 /** 低音谱表舒适范围：G2 (MIDI 43) 到 A3 (MIDI 57) */
 const BASS_STAFF_LOW = 43;  // G2
 const BASS_STAFF_HIGH = 57; // A3

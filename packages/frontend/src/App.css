@@ -28,6 +28,49 @@
   max-width: 800px;
 }
 
+/* 面包屑导航 */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+}
+
+.breadcrumb-link {
+  background: none;
+  border: none;
+  color: #646cff;
+  cursor: pointer;
+  font-size: inherit;
+  padding: 0;
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+
+.breadcrumb-link:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
+.breadcrumb-link.active {
+  color: #aaa;
+  cursor: default;
+}
+
+.breadcrumb-link.active:hover {
+  text-decoration: none;
+  opacity: 1;
+}
+
+.breadcrumb-sep {
+  color: #555;
+}
+
+.breadcrumb-current {
+  color: #ccc;
+}
+
 @media (prefers-color-scheme: light) {
   .app-header h1 {
     color: #535bf2;
@@ -35,5 +78,21 @@
 
   .app-header p {
     color: #666;
+  }
+
+  .breadcrumb-link {
+    color: #535bf2;
+  }
+
+  .breadcrumb-link.active {
+    color: #666;
+  }
+
+  .breadcrumb-sep {
+    color: #999;
+  }
+
+  .breadcrumb-current {
+    color: #333;
   }
 }
