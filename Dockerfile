@@ -9,14 +9,13 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
 
 # 先复制工作区配置和 lockfile，利用缓存层
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .npmrc ./
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/backend/package.json ./packages/backend/
 COPY packages/frontend/package.json ./packages/frontend/
 
 # 安装依赖（包括 workspace 链接）
-# minimum-release-age=0 跳过 supply-chain 发布时间校验，避免因依赖刚发布而导致 Docker 构建失败
-RUN pnpm install --frozen-lockfile --minimum-release-age=0
+RUN pnpm install --frozen-lockfile
 
 # 复制源码
 COPY packages/shared/ ./packages/shared/
