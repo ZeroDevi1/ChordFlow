@@ -3,7 +3,9 @@ name: 构建并推送 Docker 镜像
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - 'v*'
+    branches:
+      - main
 
 env:
   REGISTRY: ghcr.io
@@ -22,9 +24,6 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 设置 QEMU
-        uses: docker/setup-qemu-action@v3
-
       - name: 设置 Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -41,9 +40,10 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=tag
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
 
       - name: 构建并推送镜像
         id: push
@@ -55,7 +55,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          platforms: linux/amd64,linux/arm64
 
       - name: 生成构件证明
         uses: actions/attest-build-provenance@v1

@@ -1,0 +1,29 @@
+# 本地开发噪音
+node_modules
+.git
+.ace-tool
+.cursor
+.vscode
+.idea
+
+# 构建缓存与 lockfile
+*.lockb
+
+# 测试、文档与示例
+**/test/**
+**/tests/**
+**/__tests__/**
+**/*.test.ts
+**/*.test.tsx
+**/docs/
+**/README.md
+**/LICENSE
+
+# 环境变量文件
+.env
+.env.local
+.env.*.local
+
+# 系统文件
+.DS_Store
+Thumbs.db
