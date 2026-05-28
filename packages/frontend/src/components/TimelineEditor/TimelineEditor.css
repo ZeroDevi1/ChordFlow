@@ -1,0 +1,299 @@
+/* 时间线编辑器容器 */
+.timeline-editor {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+  background-color: #fafafa;
+}
+
+/* 节奏型区域 */
+.patterns-section {
+  margin-bottom: 20px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.section-header h4 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #555;
+}
+
+.add-pattern-btn {
+  padding: 6px 12px;
+  background: #646cff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.add-pattern-btn:hover {
+  background: #535bf2;
+}
+
+.patterns-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 节奏型卡片 */
+.pattern-card {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 12px;
+  background: white;
+  transition: border-color 0.2s;
+}
+
+.pattern-card.editing {
+  border-color: #646cff;
+  box-shadow: 0 0 0 2px rgba(100, 108, 255, 0.1);
+}
+
+.pattern-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pattern-name-input {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.pattern-name-input:focus {
+  outline: none;
+  border-color: #646cff;
+}
+
+.pattern-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.pattern-edit-btn,
+.pattern-delete-btn {
+  padding: 4px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pattern-edit-btn:hover {
+  background: #f0f0ff;
+  border-color: #646cff;
+}
+
+.pattern-delete-btn:hover {
+  background: #fff0f0;
+  border-color: #f44336;
+  color: #f44336;
+}
+
+/* 节奏型预览 */
+.pattern-preview {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 8px;
+  background: #f5f5f5;
+  border-radius: 6px;
+}
+
+.preview-beat-group {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 3px;
+  border-right: 1px dashed #ddd;
+}
+
+.preview-beat-group:last-child {
+  border-right: none;
+}
+
+.preview-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.preview-dot.beat-start {
+  background: #646cff;
+  transform: scale(1.2);
+}
+
+.preview-dot.sub-beat {
+  background: #999;
+  transform: scale(0.8);
+}
+
+.preview-stats {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: #888;
+}
+
+/* 节奏型编辑器展开 */
+.pattern-editor {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+}
+
+.preset-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.preset-label {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.preset-btn {
+  padding: 4px 10px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.preset-btn:hover {
+  background: #f0f0ff;
+  border-color: #646cff;
+}
+
+.beat-selectors {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.beat-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 80px;
+}
+
+.beat-label {
+  font-size: 0.8rem;
+  color: #666;
+  text-align: center;
+}
+
+.beat-selector select {
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  background: white;
+  cursor: pointer;
+}
+
+.beat-selector select:focus {
+  outline: none;
+  border-color: #646cff;
+}
+
+/* 小节分配区域 */
+.measures-section {
+  margin-top: 20px;
+}
+
+.measures-section h4 {
+  margin: 0 0 12px 0;
+  font-size: 0.95rem;
+  color: #555;
+}
+
+.measures-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.measure-card {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 10px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.measure-card:hover {
+  border-color: #646cff;
+}
+
+.measure-card.editing {
+  border-color: #646cff;
+  box-shadow: 0 0 0 2px rgba(100, 108, 255, 0.1);
+}
+
+.measure-number {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 6px;
+}
+
+.measure-pattern-select {
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  background: white;
+  cursor: pointer;
+}
+
+.measure-preview {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 6px;
+  padding: 4px;
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+.mini-beat-group {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+
+.mini-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ccc;
+}
+
+.mini-dot.accent {
+  background: #646cff;
+  transform: scale(1.2);
+}

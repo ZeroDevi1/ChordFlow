@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { CIRCLE_OF_FIFTHS_DESCENDING, getMidiNumber, Note, NoteName } from '@chordflow/shared';
-import { MetronomeConfig } from '../MetronomeConfig';
+import { useMetronome } from '../../contexts';
 import {
   BassChord,
   TrebleChord,
@@ -101,10 +102,6 @@ const START_OCTAVES: Record<NoteName, number> = {
   B: 3,
   Cb: 3,
 };
-
-interface ChordInversionPracticeProps {
-  onBack: () => void;
-}
 
 /**
  * 构造带八度的音符。
@@ -225,7 +222,8 @@ function buildBassInversionChords(exercise: ChordInversionExercise): BassChord[]
  * 和弦转位练习组件
  * 五度圈下行，每个和弦一小节，4 个四分音符依次弹奏原位、第一转位、第二转位、高八度原位。
  */
-export function ChordInversionPractice({ onBack }: ChordInversionPracticeProps) {
+export function ChordInversionPractice() {
+  const navigate = useNavigate();
   const [chordType, setChordType] = useState<ChordInversionType>('major');
   const [isPracticing, setIsPracticing] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -270,9 +268,23 @@ export function ChordInversionPractice({ onBack }: ChordInversionPracticeProps) 
     stopPractice();
   }, [currentIndex, stopPractice, totalItems]);
 
-  const onMeasureComplete = useCallback(() => {
+  // 获取全局节拍器状态
+  const { state: metronomeState, togglePlay, getBeatsPerMeasure, onMeasureComplete: registerMeasureCallback } = useMetronome();
+
+  // 计算细分后的总拍数
+  const getTotalBeats = useCallback(() => {
+    return getBeatsPerMeasure();
+  }, [getBeatsPerMeasure]);
+
+  const handleMeasureComplete = useCallback(() => {
     nextExercise();
   }, [nextExercise]);
+
+  // 注册小节完成回调
+  useEffect(() => {
+    const unsubscribe = registerMeasureCallback(handleMeasureComplete);
+    return unsubscribe;
+  }, [registerMeasureCallback, handleMeasureComplete]);
 
   const currentExercise = exercises[currentIndex];
 
@@ -299,7 +311,7 @@ export function ChordInversionPractice({ onBack }: ChordInversionPracticeProps) 
   return (
     <div className="chord-inversion-practice">
       <div className="practice-header">
-        <button className="back-button" onClick={onBack}>
+        <button className="back-button" onClick={() => navigate('/')}>
           ← 返回
         </button>
         <h2>和弦转位</h2>
@@ -307,8 +319,6 @@ export function ChordInversionPractice({ onBack }: ChordInversionPracticeProps) 
 
       {!isPracticing ? (
         <div className="scale-settings">
-          <MetronomeConfig />
-
           <div className="practice-options">
             <h4>练习设置</h4>
 
@@ -327,7 +337,32 @@ export function ChordInversionPractice({ onBack }: ChordInversionPracticeProps) 
         </div>
       ) : (
         <div className="scale-practice-area">
-          <MetronomeConfig onMeasureComplete={onMeasureComplete} />
+          {/* 节拍器控制条（只读显示） */}
+          <div className="metronome-bar">
+            <button
+              className={`play-btn ${metronomeState.isPlaying ? 'playing' : ''}`}
+              onClick={togglePlay}
+            >
+              {metronomeState.isPlaying ? '■' : '▶'}
+            </button>
+            <span className="bpm-display">{metronomeState.bpm} BPM</span>
+            <span className="time-sig-display">
+              {metronomeState.timeSignature.beatsPerMeasure}/{metronomeState.timeSignature.beatUnit}
+            </span>
+            <span className="subdivision-display">
+              {metronomeState.subdivision === 'basic' ? '基础拍' :
+               metronomeState.subdivision === 'eighth' ? '八分' :
+               metronomeState.subdivision === 'triplet' ? '三连音' : '混合'}
+            </span>
+            <div className="beat-indicators">
+              {Array.from({ length: metronomeState.currentBeat > 0 ? getTotalBeats() : 0 }, (_, i) => (
+                <div
+                  key={i}
+                  className={`beat-dot ${metronomeState.currentBeat === i + 1 ? 'active' : ''}`}
+                />
+              ))}
+            </div>
+          </div>
 
           <div className="scale-display">
             <div className="scale-top-bar">

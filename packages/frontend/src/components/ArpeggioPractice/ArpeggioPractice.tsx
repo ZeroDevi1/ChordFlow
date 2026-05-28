@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { CIRCLE_OF_FIFTHS_DESCENDING, getMidiNumber, Note, NoteName } from '@chordflow/shared';
-import { MetronomeConfig } from '../MetronomeConfig';
+import { useMetronome } from '../../contexts';
 import { BassChord, NoteWithDuration, AlphaTabStaffNotation as StaffNotation, adjustBassChordOctave } from '../StaffNotation';
 import './ArpeggioPractice.css';
 
@@ -102,10 +103,6 @@ const STANDARD_START_OCTAVES: Record<NoteName, number> = {
   Cb: 3,
 };
 
-interface ArpeggioPracticeProps {
-  onBack: () => void;
-}
-
 /**
  * 构造带八度的音符。
  */
@@ -195,7 +192,8 @@ function buildBassChord(exercise: ArpeggioExercise, duration: 'whole' | 'half' =
  * 三和弦琶音练习组件
  * 支持普通五度下行和就近连接两种 PDF 谱面。
  */
-export function ArpeggioPractice({ onBack }: ArpeggioPracticeProps) {
+export function ArpeggioPractice() {
+  const navigate = useNavigate();
   const [chordType, setChordType] = useState<ArpeggioChordType>('major');
   const [mode, setMode] = useState<ArpeggioMode>('standard');
   const [isPracticing, setIsPracticing] = useState(false);
@@ -248,7 +246,15 @@ export function ArpeggioPractice({ onBack }: ArpeggioPracticeProps) {
     stopPractice();
   }, [currentIndex, stopPractice, totalItems]);
 
-  const onMeasureComplete = useCallback(() => {
+  // 获取全局节拍器状态
+  const { state: metronomeState, togglePlay, getBeatsPerMeasure, onMeasureComplete: registerMeasureCallback } = useMetronome();
+
+  // 计算细分后的总拍数
+  const getTotalBeats = useCallback(() => {
+    return getBeatsPerMeasure();
+  }, [getBeatsPerMeasure]);
+
+  const handleMeasureComplete = useCallback(() => {
     setCurrentMeasure(prev => {
       const nextMeasure = prev + 1;
       if (nextMeasure >= measuresPerItem) {
@@ -258,6 +264,12 @@ export function ArpeggioPractice({ onBack }: ArpeggioPracticeProps) {
       return nextMeasure;
     });
   }, [measuresPerItem, nextExercise]);
+
+  // 注册小节完成回调
+  useEffect(() => {
+    const unsubscribe = registerMeasureCallback(handleMeasureComplete);
+    return unsubscribe;
+  }, [registerMeasureCallback, handleMeasureComplete]);
 
   const notes = useMemo<NoteWithDuration[]>(() => {
     if (mode === 'standard') {
@@ -290,14 +302,12 @@ export function ArpeggioPractice({ onBack }: ArpeggioPracticeProps) {
   return (
     <div className="arpeggio-practice">
       <div className="practice-header">
-        <button className="back-button" onClick={onBack}>← 返回</button>
+        <button className="back-button" onClick={() => navigate('/')}>← 返回</button>
         <h2>和弦琶音</h2>
       </div>
 
       {!isPracticing ? (
         <div className="scale-settings">
-          <MetronomeConfig />
-
           <div className="practice-options">
             <h4>练习设置</h4>
 
@@ -324,7 +334,32 @@ export function ArpeggioPractice({ onBack }: ArpeggioPracticeProps) {
         </div>
       ) : (
         <div className="scale-practice-area">
-          <MetronomeConfig onMeasureComplete={onMeasureComplete} />
+          {/* 节拍器控制条（只读显示） */}
+          <div className="metronome-bar">
+            <button
+              className={`play-btn ${metronomeState.isPlaying ? 'playing' : ''}`}
+              onClick={togglePlay}
+            >
+              {metronomeState.isPlaying ? '■' : '▶'}
+            </button>
+            <span className="bpm-display">{metronomeState.bpm} BPM</span>
+            <span className="time-sig-display">
+              {metronomeState.timeSignature.beatsPerMeasure}/{metronomeState.timeSignature.beatUnit}
+            </span>
+            <span className="subdivision-display">
+              {metronomeState.subdivision === 'basic' ? '基础拍' :
+               metronomeState.subdivision === 'eighth' ? '八分' :
+               metronomeState.subdivision === 'triplet' ? '三连音' : '混合'}
+            </span>
+            <div className="beat-indicators">
+              {Array.from({ length: metronomeState.currentBeat > 0 ? getTotalBeats() : 0 }, (_, i) => (
+                <div
+                  key={i}
+                  className={`beat-dot ${metronomeState.currentBeat === i + 1 ? 'active' : ''}`}
+                />
+              ))}
+            </div>
+          </div>
 
           <div className="scale-display">
             <div className="scale-top-bar">

@@ -1,12 +1,13 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { 
-  NoteName, 
+import { useNavigate } from 'react-router-dom';
+import {
+  NoteName,
   Note,
-  ScaleType, 
+  ScaleType,
   CIRCLE_OF_FIFTHS_DESCENDING,
   getScaleNotes,
 } from '@chordflow/shared';
-import { MetronomeConfig } from '../MetronomeConfig';
+import { useMetronome } from '../../contexts';
 import { AlphaTabStaffNotation as StaffNotation, NoteWithDuration, BassChord, adjustBassChordOctave } from '../StaffNotation';
 import './ScalePractice.css';
 
@@ -81,15 +82,12 @@ const MINOR_KEY_SIGNATURES: Partial<Record<NoteName, string>> = {
   Cb: 'D',
 };
 
-interface ScalePracticeProps {
-  onBack: () => void;
-}
-
 /**
  * 音阶练习组件
  * 支持自然大调/小调、五度圈顺序、随机练习
  */
-export function ScalePractice({ onBack }: ScalePracticeProps) {
+export function ScalePractice() {
+  const navigate = useNavigate();
   const [scaleType, setScaleType] = useState<ScaleType>('natural-major');
   const [practiceMode, setPracticeMode] = useState<ScalePracticeMode>('sequential');
   const [randomCount, setRandomCount] = useState(3);
@@ -135,8 +133,16 @@ export function ScalePractice({ onBack }: ScalePracticeProps) {
     }
   }, [currentIndex, currentScales]);
 
+  // 获取全局节拍器状态
+  const { state: metronomeState, togglePlay, getBeatsPerMeasure, onMeasureComplete: registerMeasureCallback } = useMetronome();
+
+  // 计算细分后的总拍数
+  const getTotalBeats = useCallback(() => {
+    return getBeatsPerMeasure();
+  }, [getBeatsPerMeasure]);
+
   // 小节计时器回调
-  const onMeasureComplete = useCallback(() => {
+  const handleMeasureComplete = useCallback(() => {
     setCurrentMeasure(prev => {
       const nextMeasure = prev + 1;
       if (nextMeasure >= measuresPerScale) {
@@ -147,6 +153,12 @@ export function ScalePractice({ onBack }: ScalePracticeProps) {
       return nextMeasure;
     });
   }, [measuresPerScale, nextScale]);
+
+  // 注册小节完成回调
+  useEffect(() => {
+    const unsubscribe = registerMeasureCallback(handleMeasureComplete);
+    return unsubscribe;
+  }, [registerMeasureCallback, handleMeasureComplete]);
 
   // 开始练习
   const startPractice = useCallback(() => {
@@ -231,17 +243,15 @@ export function ScalePractice({ onBack }: ScalePracticeProps) {
   return (
     <div className="scale-practice">
       <div className="practice-header">
-        <button className="back-button" onClick={onBack}>← 返回</button>
+        <button className="back-button" onClick={() => navigate('/')}>← 返回</button>
         <h2>音阶练习</h2>
       </div>
-      
+
       {!isPracticing ? (
         <div className="scale-settings">
-          <MetronomeConfig />
-          
           <div className="practice-options">
             <h4>练习设置</h4>
-            
+
             <div className="setting-group">
               <label>音阶类型</label>
               <select
@@ -252,7 +262,7 @@ export function ScalePractice({ onBack }: ScalePracticeProps) {
                 <option value="natural-minor">自然小调</option>
               </select>
             </div>
-            
+
             <div className="setting-group">
               <label>练习模式</label>
               <select
@@ -263,7 +273,7 @@ export function ScalePractice({ onBack }: ScalePracticeProps) {
                 <option value="random">随机</option>
               </select>
             </div>
-            
+
             {practiceMode === 'random' && (
               <div className="setting-group">
                 <label>随机数量</label>
@@ -277,7 +287,7 @@ export function ScalePractice({ onBack }: ScalePracticeProps) {
                 </select>
               </div>
             )}
-            
+
             <div className="setting-group">
               <label>每调小节数</label>
               <select
@@ -289,7 +299,7 @@ export function ScalePractice({ onBack }: ScalePracticeProps) {
                 ))}
               </select>
             </div>
-            
+
             <div className="setting-group">
               <label>显示模式</label>
               <select
@@ -300,7 +310,7 @@ export function ScalePractice({ onBack }: ScalePracticeProps) {
                 <option value="staff">五线谱</option>
               </select>
             </div>
-            
+
             <button className="start-button" onClick={startPractice}>
               开始练习
             </button>
@@ -308,8 +318,33 @@ export function ScalePractice({ onBack }: ScalePracticeProps) {
         </div>
       ) : (
         <div className="scale-practice-area">
-          <MetronomeConfig onMeasureComplete={onMeasureComplete} />
-          
+          {/* 节拍器控制条（只读显示） */}
+          <div className="metronome-bar">
+            <button
+              className={`play-btn ${metronomeState.isPlaying ? 'playing' : ''}`}
+              onClick={togglePlay}
+            >
+              {metronomeState.isPlaying ? '■' : '▶'}
+            </button>
+            <span className="bpm-display">{metronomeState.bpm} BPM</span>
+            <span className="time-sig-display">
+              {metronomeState.timeSignature.beatsPerMeasure}/{metronomeState.timeSignature.beatUnit}
+            </span>
+            <span className="subdivision-display">
+              {metronomeState.subdivision === 'basic' ? '基础拍' :
+               metronomeState.subdivision === 'eighth' ? '八分' :
+               metronomeState.subdivision === 'triplet' ? '三连音' : '混合'}
+            </span>
+            <div className="beat-indicators">
+              {Array.from({ length: metronomeState.currentBeat > 0 ? getTotalBeats() : 0 }, (_, i) => (
+                <div
+                  key={i}
+                  className={`beat-dot ${metronomeState.currentBeat === i + 1 ? 'active' : ''}`}
+                />
+              ))}
+            </div>
+          </div>
+
           <div className="scale-display">
             <div className="scale-top-bar">
               <div className="scale-progress">
@@ -318,7 +353,7 @@ export function ScalePractice({ onBack }: ScalePracticeProps) {
               <div className="scale-measure-info">
                 第 {currentMeasure + 1} / {measuresPerScale} 小节
               </div>
-              <button 
+              <button
                 className="display-toggle-btn"
                 onClick={toggleDisplayMode}
                 title={displayMode === 'name' ? '切换到五线谱' : '切换到调性名称'}
@@ -326,7 +361,7 @@ export function ScalePractice({ onBack }: ScalePracticeProps) {
                 {displayMode === 'name' ? '𝄞' : '♪'}
               </button>
             </div>
-            
+
             <div className="current-scale">
               {displayMode === 'name' ? (
                 <>
@@ -352,7 +387,7 @@ export function ScalePractice({ onBack }: ScalePracticeProps) {
                 </>
               )}
             </div>
-            
+
             <div className="scale-actions">
               <button className="next-button" onClick={nextScale}>
                 {currentIndex < currentScales.length - 1 ? '跳过' : '完成练习'}

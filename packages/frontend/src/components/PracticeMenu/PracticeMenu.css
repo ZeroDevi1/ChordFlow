@@ -23,6 +23,8 @@
   text-align: center;
   color: inherit;
   font: inherit;
+  text-decoration: none;
+  display: block;
 }
 
 .practice-card:hover {
