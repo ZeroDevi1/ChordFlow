@@ -304,6 +304,11 @@ export function ArpeggioPractice() {
     ? currentGroup[0]?.name ?? ''
     : currentGroup.map(exercise => exercise.name).join(' → ');
 
+  // 当前练习项的期望音符（用于 MIDI 检测）
+  const expectedNotes = useMemo(() => {
+    return notes.map(n => n.note.midiNumber);
+  }, [notes]);
+
   // MIDI 检测（混合模式：弹对所有音符 OR 时值耗尽，取先满足者）
   const {
     status: midiStatus,
@@ -314,7 +319,7 @@ export function ArpeggioPractice() {
     selectDevice: midiSelectDevice,
     reset: midiReset,
   } = useMidiDetection({
-    expectedNotes: notes.map(n => n.note.midiNumber),
+    expectedNotes,
     enabled: isPracticing,
   });
 
