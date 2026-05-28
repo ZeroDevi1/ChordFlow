@@ -297,3 +297,100 @@
   background: #646cff;
   transform: scale(1.2);
 }
+
+/* 深色模式 */
+@media (prefers-color-scheme: dark) {
+  .timeline-editor {
+    border-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .section-header h4 {
+    color: #aaa;
+  }
+
+  .pattern-card {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .pattern-name-input {
+    background: #333;
+    color: white;
+    border-color: #555;
+  }
+
+  .pattern-edit-btn,
+  .pattern-delete-btn {
+    background: #333;
+    color: white;
+    border-color: #555;
+  }
+
+  .pattern-edit-btn:hover {
+    background: rgba(100, 108, 255, 0.2);
+  }
+
+  .pattern-preview {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .preview-beat-group {
+    border-right-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .preview-stats {
+    color: #888;
+  }
+
+  .pattern-editor {
+    border-top-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .preset-label {
+    color: #888;
+  }
+
+  .preset-btn {
+    background: #333;
+    color: white;
+    border-color: #555;
+  }
+
+  .beat-label {
+    color: #888;
+  }
+
+  .beat-selector select {
+    background: #333;
+    color: white;
+    border-color: #555;
+  }
+
+  .measures-section h4 {
+    color: #aaa;
+  }
+
+  .measure-card {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .measure-number {
+    color: #ccc;
+  }
+
+  .measure-pattern-select {
+    background: #333;
+    color: white;
+    border-color: #555;
+  }
+
+  .measure-preview {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .mini-dot {
+    background: #555;
+  }
+}

@@ -137,6 +137,21 @@ body {
   font-size: 1rem;
 }
 
+/* 全局表单元素兜底样式，确保深色模式下输入框不突兀 */
+input,
+select,
+textarea {
+  background: #333;
+  color: white;
+  border: 1px solid #555;
+  border-radius: 4px;
+}
+
+option {
+  background: #333;
+  color: white;
+}
+
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
@@ -155,5 +170,18 @@ body {
     background: #fff;
     color: #213547;
     border-color: #ccc;
+  }
+
+  input,
+  select,
+  textarea {
+    background: #fff;
+    color: #213547;
+    border-color: #ccc;
+  }
+
+  option {
+    background: #fff;
+    color: #213547;
   }
 }

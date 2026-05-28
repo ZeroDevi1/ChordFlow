@@ -166,3 +166,66 @@
 .modal-confirm-btn:hover {
   background-color: #0056b3;
 }
+
+/* 深色模式 */
+@media (prefers-color-scheme: dark) {
+  .modal-content {
+    background-color: #1a1a1a;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  }
+
+  .modal-header {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .modal-header h2 {
+    color: #fff;
+  }
+
+  .modal-close-btn {
+    color: #888;
+  }
+
+  .modal-close-btn:hover {
+    color: #fff;
+  }
+
+  .setting-group label {
+    color: #aaa;
+  }
+
+  .bpm-control input[type="range"] {
+    background: #444;
+  }
+
+  .bpm-control input[type="range"]::-webkit-slider-thumb {
+    background: #646cff;
+  }
+
+  .bpm-value {
+    color: #646cff;
+  }
+
+  .time-signature-control select,
+  .setting-group select {
+    background: #333;
+    color: white;
+    border-color: #555;
+  }
+
+  .time-signature-divider {
+    color: #888;
+  }
+
+  .modal-footer {
+    border-top-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .modal-confirm-btn {
+    background-color: #646cff;
+  }
+
+  .modal-confirm-btn:hover {
+    background-color: #535bf2;
+  }
+}

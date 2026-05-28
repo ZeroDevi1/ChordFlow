@@ -1,0 +1,95 @@
+.chord-inversion-practice {
+  background: #1a1a1a;
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+@media (min-width: 900px) {
+  .chord-inversion-practice {
+    max-width: 1100px;
+  }
+}
+
+@media (min-width: 1400px) {
+  .chord-inversion-practice {
+    max-width: 1400px;
+  }
+}
+
+/* 练习设置区域共享样式 */
+.practice-options {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.practice-options h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  color: #aaa;
+}
+
+.scale-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.setting-group {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.setting-group label {
+  min-width: 100px;
+  text-align: right;
+  font-weight: 500;
+}
+
+.setting-group select {
+  flex: 1;
+  padding: 0.5rem;
+  background: #333;
+  color: white;
+  border: 1px solid #555;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.start-button {
+  margin-top: 1rem;
+  padding: 0.75rem 2rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+  background: #646cff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.start-button:hover {
+  background: #535bf2;
+}
+
+@media (prefers-color-scheme: light) {
+  .chord-inversion-practice {
+    background: #f5f5f5;
+  }
+
+  .practice-options {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.1);
+  }
+
+  .setting-group select {
+    background: #fff;
+    color: #213547;
+    border-color: #ccc;
+  }
+}
