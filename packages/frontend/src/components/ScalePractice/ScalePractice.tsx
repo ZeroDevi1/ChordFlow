@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   NoteName,
@@ -8,6 +8,7 @@ import {
   getScaleNotes,
 } from '@chordflow/shared';
 import { useMetronome } from '../../contexts';
+import { useMidiDetection } from '../../hooks/useMidiDetection';
 import { AlphaTabStaffNotation as StaffNotation, NoteWithDuration, BassChord, adjustBassChordOctave } from '../StaffNotation';
 import './ScalePractice.css';
 
@@ -99,6 +100,9 @@ export function ScalePractice() {
   const [currentMeasure, setCurrentMeasure] = useState(0);
   const measureTimerRef = useRef<number | null>(null);
 
+  // 混合模式：防止 MIDI 检测与小节计时重复触发前进的锁
+  const hasAdvancedRef = useRef(false);
+
   // 获取五度圈下行顺序的音阶列表
   const getSequentialScales = useCallback((): NoteName[] => {
     return [...CIRCLE_OF_FIFTHS_DESCENDING];
@@ -121,15 +125,23 @@ export function ScalePractice() {
 
   // 切换到下一个音阶
   const nextScale = useCallback(() => {
+    if (hasAdvancedRef.current) return;
+    hasAdvancedRef.current = true;
+
     if (currentIndex < currentScales.length - 1) {
       setCurrentIndex(currentIndex + 1);
       setCurrentMeasure(0);
+      // 混合模式：下一帧重置前进锁，允许下一个练习项再次触发
+      requestAnimationFrame(() => {
+        hasAdvancedRef.current = false;
+      });
     } else {
       // 练习完成
       setIsPracticing(false);
       setCurrentScales([]);
       setCurrentIndex(0);
       setCurrentMeasure(0);
+      hasAdvancedRef.current = false;
     }
   }, [currentIndex, currentScales]);
 
@@ -167,6 +179,7 @@ export function ScalePractice() {
     setCurrentIndex(0);
     setCurrentMeasure(0);
     setIsPracticing(true);
+    hasAdvancedRef.current = false;
   }, [practiceMode, getSequentialScales, getRandomScales]);
 
   // 停止练习
@@ -175,6 +188,7 @@ export function ScalePractice() {
     setCurrentScales([]);
     setCurrentIndex(0);
     setCurrentMeasure(0);
+    hasAdvancedRef.current = false;
     if (measureTimerRef.current) {
       clearInterval(measureTimerRef.current);
       measureTimerRef.current = null;
@@ -230,6 +244,46 @@ export function ScalePractice() {
   const toggleDisplayMode = useCallback(() => {
     setDisplayMode(prev => prev === 'name' ? 'staff' : 'name');
   }, []);
+
+  // 当前练习项的期望音符（用于 MIDI 检测）
+  const expectedNotes = useMemo(() => {
+    if (currentScales.length === 0) return [];
+    const root = currentScales[currentIndex];
+    const startOctave = scaleType === 'natural-major' ? NATURAL_MAJOR_START_OCTAVES[root] : (NATURAL_MINOR_START_OCTAVES[root] ?? 4);
+    const scaleNotes = getScaleNotes(root, scaleType, startOctave);
+    return scaleNotes.map(n => n.midiNumber);
+  }, [currentScales, currentIndex, scaleType]);
+
+  // MIDI 检测（混合模式：弹对所有音符 OR 时值耗尽，取先满足者）
+  const {
+    status: midiStatus,
+    devices: midiDevices,
+    selectedDevice: midiSelectedDevice,
+    isInitialized: midiIsInitialized,
+    initialize: midiInitialize,
+    selectDevice: midiSelectDevice,
+    reset: midiReset,
+  } = useMidiDetection({
+    expectedNotes,
+    enabled: isPracticing,
+  });
+
+  // 混合模式：MIDI 检测完成时立即前进（以弹对所有音符为主）
+  useEffect(() => {
+    if (midiStatus === 'completed' && isPracticing) {
+      if (!hasAdvancedRef.current) {
+        hasAdvancedRef.current = true;
+        nextScale();
+      }
+    }
+  }, [midiStatus, isPracticing, nextScale]);
+
+  // 练习停止时重置 MIDI 检测状态
+  useEffect(() => {
+    if (!isPracticing) {
+      midiReset();
+    }
+  }, [isPracticing, midiReset]);
 
   // 组件卸载时清理
   useEffect(() => {
@@ -360,6 +414,23 @@ export function ScalePractice() {
               >
                 {displayMode === 'name' ? '𝄞' : '♪'}
               </button>
+              {/* MIDI 设备状态 */}
+              <div className="midi-status">
+                {!midiIsInitialized ? (
+                  <button className="midi-btn" onClick={midiInitialize}>连接 MIDI</button>
+                ) : midiDevices.length === 0 ? (
+                  <span className="midi-text">无 MIDI 设备</span>
+                ) : !midiSelectedDevice ? (
+                  <select className="midi-select" onChange={e => midiSelectDevice(e.target.value)} value="">
+                    <option value="">选择 MIDI 设备</option>
+                    {midiDevices.map(d => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="midi-connected">MIDI: {midiSelectedDevice.name}</span>
+                )}
+              </div>
             </div>
 
             <div className="current-scale">

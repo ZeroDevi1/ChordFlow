@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CIRCLE_OF_FIFTHS_DESCENDING, getMidiNumber, Note, NoteName } from '@chordflow/shared';
 import { useMetronome } from '../../contexts';
+import { useMidiDetection } from '../../hooks/useMidiDetection';
 import { BassChord, NoteWithDuration, AlphaTabStaffNotation as StaffNotation, adjustBassChordOctave } from '../StaffNotation';
 import './ArpeggioPractice.css';
 
@@ -201,6 +202,9 @@ export function ArpeggioPractice() {
   const [currentMeasure, setCurrentMeasure] = useState(0);
   const measureTimerRef = useRef<number | null>(null);
 
+  // 混合模式：防止 MIDI 检测与小节计时重复触发前进的锁
+  const hasAdvancedRef = useRef(false);
+
   const exercises = useMemo<ArpeggioExercise[]>(() => {
     const roots = chordType === 'major' ? MAJOR_ROOTS : mode === 'standard' ? MINOR_STANDARD_ROOTS : MINOR_NEARBY_ROOTS;
 
@@ -224,12 +228,14 @@ export function ArpeggioPractice() {
     setCurrentIndex(0);
     setCurrentMeasure(0);
     setIsPracticing(true);
+    hasAdvancedRef.current = false;
   }, []);
 
   const stopPractice = useCallback(() => {
     setIsPracticing(false);
     setCurrentIndex(0);
     setCurrentMeasure(0);
+    hasAdvancedRef.current = false;
     if (measureTimerRef.current) {
       clearInterval(measureTimerRef.current);
       measureTimerRef.current = null;
@@ -237,9 +243,16 @@ export function ArpeggioPractice() {
   }, []);
 
   const nextExercise = useCallback(() => {
+    if (hasAdvancedRef.current) return;
+    hasAdvancedRef.current = true;
+
     if (currentIndex < totalItems - 1) {
       setCurrentIndex(currentIndex + 1);
       setCurrentMeasure(0);
+      // 混合模式：下一帧重置前进锁，允许下一个练习项再次触发
+      requestAnimationFrame(() => {
+        hasAdvancedRef.current = false;
+      });
       return;
     }
 
@@ -290,6 +303,37 @@ export function ArpeggioPractice() {
   const title = mode === 'standard'
     ? currentGroup[0]?.name ?? ''
     : currentGroup.map(exercise => exercise.name).join(' → ');
+
+  // MIDI 检测（混合模式：弹对所有音符 OR 时值耗尽，取先满足者）
+  const {
+    status: midiStatus,
+    devices: midiDevices,
+    selectedDevice: midiSelectedDevice,
+    isInitialized: midiIsInitialized,
+    initialize: midiInitialize,
+    selectDevice: midiSelectDevice,
+    reset: midiReset,
+  } = useMidiDetection({
+    expectedNotes: notes.map(n => n.note.midiNumber),
+    enabled: isPracticing,
+  });
+
+  // 混合模式：MIDI 检测完成时立即前进（以弹对所有音符为主）
+  useEffect(() => {
+    if (midiStatus === 'completed' && isPracticing) {
+      if (!hasAdvancedRef.current) {
+        hasAdvancedRef.current = true;
+        nextExercise();
+      }
+    }
+  }, [midiStatus, isPracticing, nextExercise]);
+
+  // 练习停止时重置 MIDI 检测状态
+  useEffect(() => {
+    if (!isPracticing) {
+      midiReset();
+    }
+  }, [isPracticing, midiReset]);
 
   useEffect(() => {
     return () => {
@@ -372,6 +416,23 @@ export function ArpeggioPractice() {
               <button className="display-toggle-btn" title="五线谱模式">
                 ♪
               </button>
+              {/* MIDI 设备状态 */}
+              <div className="midi-status">
+                {!midiIsInitialized ? (
+                  <button className="midi-btn" onClick={midiInitialize}>连接 MIDI</button>
+                ) : midiDevices.length === 0 ? (
+                  <span className="midi-text">无 MIDI 设备</span>
+                ) : !midiSelectedDevice ? (
+                  <select className="midi-select" onChange={e => midiSelectDevice(e.target.value)} value="">
+                    <option value="">选择 MIDI 设备</option>
+                    {midiDevices.map(d => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="midi-connected">MIDI: {midiSelectedDevice.name}</span>
+                )}
+              </div>
             </div>
 
             <div className="current-scale">
