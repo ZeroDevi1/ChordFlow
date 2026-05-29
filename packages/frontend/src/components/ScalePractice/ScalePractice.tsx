@@ -249,6 +249,8 @@ export function ScalePractice() {
   // MIDI 检测（混合模式：弹对所有音符 OR 时值耗尽，取先满足者）
   const {
     status: midiStatus,
+    currentIndex: midiCurrentIndex,
+    results: midiResults,
     devices: midiDevices,
     selectedDevice: midiSelectedDevice,
     isInitialized: midiIsInitialized,
@@ -290,7 +292,7 @@ export function ScalePractice() {
   return (
     <div className="scale-practice">
       <div className="practice-header">
-        <button className="back-button" onClick={() => navigate('/')}>← 返回</button>
+        <button className="back-button" onClick={() => isPracticing ? stopPractice() : navigate('/')}>← 返回</button>
         <h2>音阶练习</h2>
       </div>
 
@@ -462,6 +464,8 @@ export function ScalePractice() {
                     suppressEighthFlags={true}
                     width={520}
                     height={280}
+                    activeNoteIndex={midiCurrentIndex}
+                    results={midiResults}
                   />
                   <div className="scale-hint">参照五线谱在键盘上弹奏</div>
                 </>

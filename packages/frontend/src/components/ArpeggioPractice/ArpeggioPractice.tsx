@@ -149,14 +149,21 @@ function buildTriadAcrossOctaves(root: NoteName, chordType: ArpeggioChordType, o
 
 /**
  * 生成普通五度下行琶音，两小节一个和弦。
+ *
+ * 音符序列（以 C 大三和弦为例）：
+ * 上行（八分音符）：C4 E4 G4 C5 E5 G5 C6  → 1 3 5 1 3 5 1
+ * 下行（八分音符）：G5 E5 C5 G4 E4        → 5 3 1 5 3（从比最后一个1低的5开始）
+ * 结尾（二分音符）：C4                    → 1
+ *
+ * 总共 12 个八分音符（6拍）+ 1 个二分音符（2拍）= 8拍 = 两小节 4/4。
  */
 function buildStandardNotes(exercise: ArpeggioExercise): NoteWithDuration[] {
   const octave = STANDARD_START_OCTAVES[exercise.root];
-  // 上行：8个八分音符（1 3 5 1 3 5 1 5）
-  const ascending = buildTriadAcrossOctaves(exercise.root, exercise.chordType, octave, 8);
-  // 下行：4个八分音符（3 1 5 3）
-  const descending = ascending.slice(2, 6).reverse();
-  // 结尾根音：二分音符
+  // 上行：7个八分音符（1 3 5 1 3 5 1），到高八度根音为止
+  const ascending = buildTriadAcrossOctaves(exercise.root, exercise.chordType, octave, 7);
+  // 下行前5个音符（5 3 1 5 3）：取上行索引 1~5 反转得到
+  const descending = ascending.slice(1, 6).reverse();
+  // 结尾根音：二分音符，回到起始八度
   const endingRoot = makeNote(exercise.root, octave);
 
   return [
@@ -167,12 +174,70 @@ function buildStandardNotes(exercise: ArpeggioExercise): NoteWithDuration[] {
 }
 
 /**
- * 生成就近连接琶音，一小节一个和弦并上下行交替。
+ * 找到最接近目标 MIDI 音高的根音（1），用于就近连接的八度选择。
  */
-function buildNearbyMeasureNotes(exercise: ArpeggioExercise, index: number): NoteWithDuration[] {
-  const octave = STANDARD_START_OCTAVES[exercise.root];
-  const ascending = buildTriadAcrossOctaves(exercise.root, exercise.chordType, octave, 8);
-  const notes = index % 2 === 0 ? ascending : [...ascending].reverse();
+function findNearestRootNote(root: NoteName, targetMidi: number): Note {
+  const candidates: Note[] = [];
+  for (let oct = 1; oct <= 7; oct++) {
+    candidates.push(makeNote(root, oct));
+  }
+  return candidates.reduce((closest, note) =>
+    Math.abs(note.midiNumber - targetMidi) < Math.abs(closest.midiNumber - targetMidi)
+      ? note : closest
+  );
+}
+
+/**
+ * 从指定根音开始向下生成琶音序列（1 5 3 1 5 3 1 5）。
+ */
+function buildTriadDownwardsFrom(startRoot: Note, root: NoteName, chordType: ArpeggioChordType): Note[] {
+  const names = getTriadNames(root, chordType);
+  const downPattern = [0, 2, 1]; // 1, 5, 3
+  const notes: Note[] = [];
+  let prevMidi = startRoot.midiNumber + 1;
+  let currentOctave = startRoot.octave;
+
+  for (let i = 0; i < 8; i++) {
+    const nameIdx = downPattern[i % 3];
+    const name = names[nameIdx];
+    let note = makeNote(name, currentOctave);
+    while (note.midiNumber >= prevMidi) {
+      currentOctave--;
+      note = makeNote(name, currentOctave);
+    }
+    notes.push(note);
+    prevMidi = note.midiNumber;
+  }
+  return notes;
+}
+
+/**
+ * 生成就近连接琶音，一小节一个和弦并上下行交替。
+ *
+ * 规则：
+ * - 第一个和弦从起始八度开始上行（1 3 5 1 3 5 1 3）
+ * - 后续和弦从上一个结束音的最近根音开始，方向交替
+ * - 上行：1 3 5 1 3 5 1 3；下行：1 5 3 1 5 3 1 5
+ */
+function buildNearbyMeasureNotes(
+  exercise: ArpeggioExercise,
+  direction: 'up' | 'down',
+  startFromMidi?: number,
+): NoteWithDuration[] {
+  let notes: Note[];
+
+  if (direction === 'up') {
+    const octave = startFromMidi !== undefined
+      ? findNearestRootNote(exercise.root, startFromMidi).octave
+      : STANDARD_START_OCTAVES[exercise.root];
+    notes = buildTriadAcrossOctaves(exercise.root, exercise.chordType, octave, 8);
+  } else {
+    const startRoot = startFromMidi !== undefined
+      ? findNearestRootNote(exercise.root, startFromMidi)
+      : makeNote(exercise.root, STANDARD_START_OCTAVES[exercise.root]);
+    notes = buildTriadDownwardsFrom(startRoot, exercise.root, exercise.chordType);
+  }
+
   return notes.map(note => ({ note, duration: 'eighth' as const }));
 }
 
@@ -282,7 +347,19 @@ export function ArpeggioPractice() {
       return currentGroup[0] ? buildStandardNotes(currentGroup[0]) : [];
     }
 
-    return currentGroup.flatMap((exercise, index) => buildNearbyMeasureNotes(exercise, index));
+    // 就近连接：上下行交替，从上一个结束音的最近根音开始
+    const result: NoteWithDuration[] = [];
+    let lastEndMidi: number | undefined;
+
+    for (let i = 0; i < currentGroup.length; i++) {
+      const exercise = currentGroup[i];
+      const direction = i % 2 === 0 ? 'up' as const : 'down' as const;
+      const measureNotes = buildNearbyMeasureNotes(exercise, direction, lastEndMidi);
+      result.push(...measureNotes);
+      lastEndMidi = measureNotes[measureNotes.length - 1].note.midiNumber;
+    }
+
+    return result;
   }, [currentGroup, mode]);
 
   const bassChords = useMemo<BassChord[]>(() => {
@@ -305,6 +382,8 @@ export function ArpeggioPractice() {
   // MIDI 检测（混合模式：弹对所有音符 OR 时值耗尽，取先满足者）
   const {
     status: midiStatus,
+    currentIndex: midiCurrentIndex,
+    results: midiResults,
     devices: midiDevices,
     selectedDevice: midiSelectedDevice,
     isInitialized: midiIsInitialized,
@@ -345,7 +424,7 @@ export function ArpeggioPractice() {
   return (
     <div className="arpeggio-practice">
       <div className="practice-header">
-        <button className="back-button" onClick={() => navigate('/')}>← 返回</button>
+        <button className="back-button" onClick={() => isPracticing ? stopPractice() : navigate('/')}>← 返回</button>
         <h2>和弦琶音</h2>
       </div>
 
@@ -462,6 +541,8 @@ export function ArpeggioPractice() {
                 suppressEighthFlags
                 width={520}
                 height={320}
+                activeNoteIndex={midiCurrentIndex}
+                results={midiResults}
               />
               <div className="arpeggio-subtitle">
                 {mode === 'standard' ? '按五度圈下行完成两小节琶音' : '按就近连接完成四个连续和弦'}

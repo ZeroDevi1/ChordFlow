@@ -321,6 +321,8 @@ export function ChordInversionPractice() {
   // MIDI 检测（混合模式：弹对所有音符 OR 时值耗尽，取先满足者）
   const {
     status: midiStatus,
+    currentIndex: midiCurrentIndex,
+    results: midiResults,
     devices: midiDevices,
     selectedDevice: midiSelectedDevice,
     isInitialized: midiIsInitialized,
@@ -361,7 +363,7 @@ export function ChordInversionPractice() {
   return (
     <div className="chord-inversion-practice">
       <div className="practice-header">
-        <button className="back-button" onClick={() => navigate('/')}>
+        <button className="back-button" onClick={() => isPracticing ? stopPractice() : navigate('/')}>
           ← 返回
         </button>
         <h2>和弦转位</h2>
@@ -467,6 +469,8 @@ export function ChordInversionPractice() {
                 showInlineAccidentals={true}
                 width={520}
                 height={320}
+                activeNoteIndex={midiCurrentIndex}
+                results={midiResults}
               />
               <div className="inversion-labels">
                 <span>原位</span>

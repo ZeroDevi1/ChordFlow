@@ -195,7 +195,7 @@ class MidiService {
     if (!event.data) return;
 
     // 打印所有 MIDI 消息的原始字节，便于排查虚拟键盘消息格式
-    // console.log('[MidiService] MIDI 消息:', Array.from(event.data));
+    console.log('[MidiService] MIDI 原始字节:', Array.from(event.data));
 
     // 防御性处理：长度不足时直接返回
     if (event.data.length < 2) {
@@ -211,6 +211,8 @@ class MidiService {
     const messageType = status & 0xf0;
     const channel = status & 0x0f;
 
+    console.log('[MidiService] 解析:', { status, messageType: '0x' + messageType.toString(16), velocity, channel });
+
     // 只处理 Note On 和 Note Off 消息
     // 注意：部分虚拟键盘发送 Note On with velocity=0 代替 Note Off，此类消息也参与检测
     if (messageType === 0x90 && velocity !== undefined) {
@@ -221,6 +223,7 @@ class MidiService {
         channel,
         timestamp: event.timeStamp,
       };
+      console.log('[MidiService] Note On 分发:', note);
       this.notifyNoteListeners(noteEvent);
     } else if (messageType === 0x80) {
       // Note Off（0x80）
