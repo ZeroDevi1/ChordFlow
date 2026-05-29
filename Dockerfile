@@ -58,12 +58,19 @@ ENV npm_config_minimum_release_age=0
 ENV CI=true
 RUN pnpm install --frozen-lockfile --prod --offline
 
+# 复制启动脚本（自动生成自签名证书 + 启动后端）
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+# 证书持久化目录（可通过 -v 挂载自定义证书）
+VOLUME ["/app/certs"]
+
 # 后端端口
 EXPOSE 3001
 
-# 健康检查（复用容器内的 Node.js，无需额外安装 wget/curl）
+# 健康检查（兼容 HTTP/HTTPS，自签名证书跳过验证）
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-  CMD node -e "const{get}=require('http');get('http://localhost:3001/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))"
+  CMD node -e "const{get}=require(process.env.TLS_CERT_PATH||require('fs').existsSync('/app/certs/cert.pem')?'https':'http');get({hostname:'localhost',port:3001,path:'/health',rejectUnauthorized:false},r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))"
 
-# 启动后端（同时 serve 前端静态文件）
-CMD ["node", "packages/backend/dist/index.js"]
+# 启动入口：自动生成证书（如无）+ 启动后端
+ENTRYPOINT ["/app/entrypoint.sh"]
