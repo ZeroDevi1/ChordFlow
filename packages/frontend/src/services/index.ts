@@ -1,1 +1,1 @@
-export { midiService, type MidiDeviceInfo, type MidiNoteEvent } from './MidiService';
+export { midiService, type MidiDeviceInfo, type MidiNoteEvent, type MidiInitResult } from './MidiService';

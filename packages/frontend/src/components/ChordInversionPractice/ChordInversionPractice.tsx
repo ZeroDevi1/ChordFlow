@@ -290,8 +290,8 @@ export function ChordInversionPractice() {
   }, [getBeatsPerMeasure]);
 
   const handleMeasureComplete = useCallback(() => {
-    nextExercise();
-  }, [nextExercise]);
+    setCurrentMeasure(prev => prev + 1);
+  }, []);
 
   // 注册小节完成回调
   useEffect(() => {
@@ -324,6 +324,7 @@ export function ChordInversionPractice() {
     devices: midiDevices,
     selectedDevice: midiSelectedDevice,
     isInitialized: midiIsInitialized,
+    initError: midiInitError,
     initialize: midiInitialize,
     selectDevice: midiSelectDevice,
     reset: midiReset,
@@ -424,13 +425,29 @@ export function ChordInversionPractice() {
               {/* MIDI 设备状态 */}
               <div className="midi-status">
                 {!midiIsInitialized ? (
-                  <button className="midi-btn" onClick={midiInitialize}>连接 MIDI</button>
-                ) : midiDevices.length === 0 ? (
-                  <span className="midi-text">无 MIDI 设备</span>
+                  <>
+                    <button className="midi-btn" onClick={midiInitialize}>连接 MIDI</button>
+                    {midiInitError === 'notSupported' && (
+                      <span className="midi-error">当前浏览器不支持 Web MIDI API，请使用 Chrome 或 Safari</span>
+                    )}
+                    {midiInitError === 'permissionDenied' && (
+                      <span className="midi-error">MIDI 权限被拒绝，请在 Safari 设置 &gt; 网站设置中重置 MIDI 权限后刷新页面</span>
+                    )}
+                    {midiInitError === 'insecureContext' && (
+                      <span className="midi-error">当前页面未使用 HTTPS，无法访问 MIDI 设备。请使用 https:// 地址访问</span>
+                    )}
+                  </>
+                ) : midiDevices.filter(d => d.type === 'input').length === 0 ? (
+                  <>
+                    <span className="midi-text">无 MIDI 输入设备</span>
+                    {midiDevices.some(d => d.type === 'output') && (
+                      <span className="midi-hint">检测到 MIDI 输出设备但无输入设备，请检查设备连接或重新插拔</span>
+                    )}
+                  </>
                 ) : !midiSelectedDevice ? (
                   <select className="midi-select" onChange={e => midiSelectDevice(e.target.value)} value="">
                     <option value="">选择 MIDI 设备</option>
-                    {midiDevices.map(d => (
+                    {midiDevices.filter(d => d.type === 'input').map(d => (
                       <option key={d.id} value={d.id}>{d.name}</option>
                     ))}
                   </select>

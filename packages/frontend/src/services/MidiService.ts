@@ -3,6 +3,9 @@
  * 管理 MIDI 设备连接、授权、消息监听
  */
 
+/** MIDI 初始化结果 */
+export type MidiInitResult = 'success' | 'notSupported' | 'permissionDenied' | 'insecureContext';
+
 /** MIDI 设备信息 */
 export interface MidiDeviceInfo {
   /** 设备 ID */
@@ -13,6 +16,8 @@ export interface MidiDeviceInfo {
   manufacturer: string;
   /** 设备状态 */
   state: 'connected' | 'disconnected';
+  /** 设备类型 */
+  type: 'input' | 'output';
 }
 
 /** MIDI 音符事件 */
@@ -50,18 +55,28 @@ class MidiService {
   private deviceListeners: Set<DeviceChangeListener> = new Set();
   /** 是否已初始化 */
   private initialized = false;
+  /** 最近一次初始化结果 */
+  private lastInitResult: MidiInitResult | null = null;
 
   /**
    * 初始化 MIDI 服务
    * 请求 MIDI 访问权限并扫描可用设备
    */
-  async initialize(): Promise<boolean> {
-    if (this.initialized) return true;
+  async initialize(): Promise<MidiInitResult> {
+    if (this.initialized) return 'success';
+
+    // 检查是否处于安全上下文（HTTPS / localhost）
+    if (typeof window !== 'undefined' && !window.isSecureContext) {
+      console.warn('[MidiService] 当前页面未使用 HTTPS，无法访问 MIDI 设备');
+      this.lastInitResult = 'insecureContext';
+      return 'insecureContext';
+    }
 
     // 检查浏览器是否支持 Web MIDI API
     if (!navigator.requestMIDIAccess) {
       console.warn('[MidiService] 浏览器不支持 Web MIDI API');
-      return false;
+      this.lastInitResult = 'notSupported';
+      return 'notSupported';
     }
 
     try {
@@ -75,15 +90,22 @@ class MidiService {
       this.scanDevices();
 
       this.initialized = true;
-      return true;
+      this.lastInitResult = 'success';
+      return 'success';
     } catch (error) {
       console.error('[MidiService] 初始化失败:', error);
-      return false;
+      // SecurityError 通常表示权限被拒绝
+      if (error instanceof DOMException && error.name === 'SecurityError') {
+        this.lastInitResult = 'permissionDenied';
+        return 'permissionDenied';
+      }
+      this.lastInitResult = 'notSupported';
+      return 'notSupported';
     }
   }
 
   /**
-   * 扫描可用的 MIDI 输入设备
+   * 扫描可用的 MIDI 输入和输出设备
    */
   private scanDevices(): void {
     if (!this.midiAccess) return;
@@ -97,6 +119,18 @@ class MidiService {
         name: input.name || '未知设备',
         manufacturer: input.manufacturer || '未知厂商',
         state: input.state as 'connected' | 'disconnected',
+        type: 'input',
+      });
+    });
+
+    // 遍历所有输出设备（用于诊断：当 inputs 为空时用户仍能看到设备存在）
+    this.midiAccess.outputs.forEach((output: MIDIOutput) => {
+      this.devices.push({
+        id: output.id,
+        name: output.name || '未知设备',
+        manufacturer: output.manufacturer || '未知厂商',
+        state: output.state as 'connected' | 'disconnected',
+        type: 'output',
       });
     });
 
@@ -109,8 +143,8 @@ class MidiService {
    */
   private handleStateChange(event: MIDIConnectionEvent): void {
     if (!event.port) return;
-    
-    console.log('[MidiService] 设备状态变化:', event.port.name, event.port.state);
+
+    console.log('[MidiService] 设备状态变化:', event.port.name, event.port.state, 'type:', event.port.type);
     this.scanDevices();
 
     // 如果当前选中的设备断开，清除选择
@@ -132,6 +166,13 @@ class MidiService {
       this.selectedInput = null;
     }
 
+    // 查找设备信息，检查是否为输入设备
+    const deviceInfo = this.devices.find(d => d.id === deviceId);
+    if (deviceInfo && deviceInfo.type === 'output') {
+      console.warn('[MidiService] 不能选择输出设备:', deviceInfo.name);
+      return false;
+    }
+
     // 查找并连接新设备
     const input = this.midiAccess.inputs.get(deviceId);
     if (!input) {
@@ -142,7 +183,8 @@ class MidiService {
     this.selectedInput = input;
     this.selectedInput.onmidimessage = this.handleMidiMessage.bind(this);
 
-    console.log('[MidiService] 已选择设备:', input.name);
+    console.log('[MidiService] 已选择设备:', input.name, 'state:', input.state);
+    console.log('[MidiService] 已绑定 onmidimessage:', input.name);
     return true;
   }
 
@@ -151,15 +193,26 @@ class MidiService {
    */
   private handleMidiMessage(event: MIDIMessageEvent): void {
     if (!event.data) return;
-    
-    const [status, note, velocity] = event.data;
+
+    // 打印所有 MIDI 消息的原始字节，便于排查虚拟键盘消息格式
+    console.log('[MidiService] MIDI 消息:', Array.from(event.data));
+
+    // 防御性处理：长度不足时直接返回
+    if (event.data.length < 2) {
+      console.log('[MidiService] MIDI 消息长度不足:', event.data.length);
+      return;
+    }
+
+    const status = event.data[0];
+    const note = event.data[1];
+    const velocity = event.data.length > 2 ? event.data[2] : undefined;
 
     // 提取消息类型和通道
     const messageType = status & 0xf0;
     const channel = status & 0x0f;
 
     // 只处理 Note On 和 Note Off 消息
-    if (messageType === 0x90 && velocity > 0) {
+    if (messageType === 0x90 && velocity !== undefined && velocity > 0) {
       // Note On
       const noteEvent: MidiNoteEvent = {
         note,
@@ -170,8 +223,11 @@ class MidiService {
       this.notifyNoteListeners(noteEvent);
     } else if (messageType === 0x80 || (messageType === 0x90 && velocity === 0)) {
       // Note Off（可以忽略，因为我们的检测逻辑基于 Note On）
+      console.log('[MidiService] Note Off 消息:', { note, channel });
+    } else {
+      // 未识别的消息类型，打印日志便于排查
+      console.log('[MidiService] 未识别消息类型:', '0x' + messageType.toString(16), '状态字节:', '0x' + status.toString(16));
     }
-    // 忽略其他消息类型（CC、SysEx、时钟等）
   }
 
   /**
@@ -242,6 +298,7 @@ class MidiService {
       name: this.selectedInput.name || '未知设备',
       manufacturer: this.selectedInput.manufacturer || '未知厂商',
       state: this.selectedInput.state as 'connected' | 'disconnected',
+      type: 'input',
     };
   }
 
@@ -250,6 +307,13 @@ class MidiService {
    */
   isInitialized(): boolean {
     return this.initialized;
+  }
+
+  /**
+   * 获取最近一次初始化结果
+   */
+  getLastInitResult(): MidiInitResult | null {
+    return this.lastInitResult;
   }
 
   /**
@@ -271,6 +335,7 @@ class MidiService {
     this.deviceListeners.clear();
     this.midiAccess = null;
     this.initialized = false;
+    this.lastInitResult = null;
   }
 }
 

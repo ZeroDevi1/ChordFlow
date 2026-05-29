@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { getNoteFromMidi } from '@chordflow/shared';
-import { midiService, MidiNoteEvent, MidiDeviceInfo } from '../services';
+import { midiService, MidiNoteEvent, MidiDeviceInfo, MidiInitResult } from '../services';
 
 /** 检测状态 */
 export type DetectionStatus = 'idle' | 'listening' | 'correct' | 'wrong' | 'completed';
@@ -43,6 +43,8 @@ interface UseMidiDetectionReturn {
   selectedDevice: MidiDeviceInfo | null;
   /** 是否已初始化 */
   isInitialized: boolean;
+  /** 初始化错误类型 */
+  initError: MidiInitResult | null;
   /** 初始化 MIDI 服务 */
   initialize: () => Promise<boolean>;
   /** 选择设备 */
@@ -68,6 +70,7 @@ export function useMidiDetection({
   const [devices, setDevices] = useState<MidiDeviceInfo[]>([]);
   const [selectedDevice, setSelectedDevice] = useState<MidiDeviceInfo | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [initError, setInitError] = useState<MidiInitResult | null>(null);
 
   // 引用
   const debounceTimerRef = useRef<number | null>(null);
@@ -178,8 +181,10 @@ export function useMidiDetection({
    * 初始化 MIDI 服务
    */
   const initialize = useCallback(async (): Promise<boolean> => {
-    const success = await midiService.initialize();
+    const result = await midiService.initialize();
+    const success = result === 'success';
     setIsInitialized(success);
+    setInitError(success ? null : result);
 
     if (success) {
       // 获取设备列表
@@ -256,6 +261,7 @@ export function useMidiDetection({
     devices,
     selectedDevice,
     isInitialized,
+    initError,
     initialize,
     selectDevice,
     reset,
