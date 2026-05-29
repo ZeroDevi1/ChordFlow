@@ -14,8 +14,11 @@ services:
     volumes:
       # 数据持久化：SQLite 数据库与上传文件
       - chordflow-data:/app/data
+      # TLS 证书持久化（首次启动自动生成，避免容器重建后重新信任）
+      - chordflow-certs:/app/certs
     healthcheck:
-      test: ["CMD", "node", "-e", "const{get}=require('http');get('http://localhost:3001/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))"]
+      # 兼容 HTTPS（自签名证书跳过验证）
+      test: ["CMD", "node", "-e", "const{get}=require(require('fs').existsSync('/app/certs/cert.pem')?'https':'http');get({hostname:'localhost',port:3001,path:'/health',rejectUnauthorized:false},r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -23,4 +26,6 @@ services:
 
 volumes:
   chordflow-data:
+    driver: local
+  chordflow-certs:
     driver: local
