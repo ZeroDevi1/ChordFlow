@@ -182,7 +182,8 @@ export function useMidiDetection({
    */
   const initialize = useCallback(async (): Promise<boolean> => {
     const result = await midiService.initialize();
-    const success = result === 'success';
+    // polyfill 模式也属于成功初始化
+    const success = result === 'success' || result === 'polyfill';
     setIsInitialized(success);
     setInitError(success ? null : result);
 

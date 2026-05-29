@@ -1,10 +1,19 @@
+import JZZ from 'jzz';
+
 /**
  * MIDI 服务层
  * 管理 MIDI 设备连接、授权、消息监听
  */
 
 /** MIDI 初始化结果 */
-export type MidiInitResult = 'success' | 'notSupported' | 'permissionDenied' | 'insecureContext';
+export type MidiInitResult = 'success' | 'polyfill' | 'notSupported' | 'permissionDenied' | 'insecureContext';
+
+/** 检测当前运行环境是否为 iOS / iPadOS */
+function isIOS(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
 
 /** MIDI 设备信息 */
 export interface MidiDeviceInfo {
@@ -38,13 +47,16 @@ type MidiEventListener = (event: MidiNoteEvent) => void;
 /** 设备变化监听器 */
 type DeviceChangeListener = (devices: MidiDeviceInfo[]) => void;
 
+/** 使用 any 兼容原生 Web MIDI API 和 jzz polyfill 的 MIDIAccess */
+type AnyMidiAccess = any;
+
 /**
  * MIDI 服务类
  * 单例模式，管理 Web MIDI API 连接和消息分发
  */
 class MidiService {
-  /** MIDI 访问接口 */
-  private midiAccess: MIDIAccess | null = null;
+  /** MIDI 访问接口（使用 any 兼容原生 API 和 jzz polyfill） */
+  private midiAccess: AnyMidiAccess = null;
   /** 当前选中的输入设备 */
   private selectedInput: MIDIInput | null = null;
   /** 可用设备列表 */
@@ -63,7 +75,7 @@ class MidiService {
    * 请求 MIDI 访问权限并扫描可用设备
    */
   async initialize(): Promise<MidiInitResult> {
-    if (this.initialized) return 'success';
+    if (this.initialized) return this.lastInitResult ?? 'success';
 
     // 检查是否处于安全上下文（HTTPS / localhost）
     if (typeof window !== 'undefined' && !window.isSecureContext) {
@@ -72,36 +84,59 @@ class MidiService {
       return 'insecureContext';
     }
 
-    // 检查浏览器是否支持 Web MIDI API
-    if (!navigator.requestMIDIAccess) {
-      console.warn('[MidiService] 浏览器不支持 Web MIDI API');
-      this.lastInitResult = 'notSupported';
-      return 'notSupported';
-    }
-
-    try {
-      // 请求 MIDI 访问权限（不请求 SysEx 权限）
-      this.midiAccess = await navigator.requestMIDIAccess({ sysex: false });
-
-      // 监听设备连接/断开事件
-      this.midiAccess.onstatechange = this.handleStateChange.bind(this);
-
-      // 扫描可用设备
-      this.scanDevices();
-
-      this.initialized = true;
-      this.lastInitResult = 'success';
-      return 'success';
-    } catch (error) {
-      console.error('[MidiService] 初始化失败:', error);
-      // SecurityError 通常表示权限被拒绝
-      if (error instanceof DOMException && error.name === 'SecurityError') {
-        this.lastInitResult = 'permissionDenied';
-        return 'permissionDenied';
+    // 辅助函数：用给定的 requestMIDIAccess 实现完成初始化
+    const doInit = async (
+      requestAccess: (opts?: any) => Promise<AnyMidiAccess>,
+      resultOnSuccess: MidiInitResult
+    ): Promise<boolean> => {
+      try {
+        this.midiAccess = await requestAccess({ sysex: false });
+        this.midiAccess.onstatechange = this.handleStateChange.bind(this);
+        this.scanDevices();
+        this.initialized = true;
+        this.lastInitResult = resultOnSuccess;
+        return true;
+      } catch (error) {
+        console.error('[MidiService] 初始化失败:', error);
+        if (error instanceof DOMException && error.name === 'SecurityError') {
+          this.lastInitResult = 'permissionDenied';
+        } else {
+          this.lastInitResult = 'notSupported';
+        }
+        return false;
       }
-      this.lastInitResult = 'notSupported';
-      return 'notSupported';
+    };
+
+    // 优先使用原生 Web MIDI API
+    if (navigator.requestMIDIAccess) {
+      const ok = await doInit(navigator.requestMIDIAccess, 'success');
+      if (ok) return 'success';
+      // 原生请求失败时继续尝试 polyfill（如权限被拒则不再尝试）
+      if (this.lastInitResult === 'permissionDenied') return 'permissionDenied';
     }
+
+    // 原生不支持或失败时，尝试 jzz polyfill
+    console.log('[MidiService] 原生 Web MIDI API 不可用，尝试 jzz polyfill...');
+    if ((JZZ as any).requestMIDIAccess) {
+      const ok = await doInit((JZZ as any).requestMIDIAccess.bind(JZZ), 'polyfill');
+      if (ok) {
+        console.log('[MidiService] 已通过 jzz polyfill 初始化');
+        return 'polyfill';
+      }
+    }
+
+    // iOS 设备上给出针对性提示
+    if (isIOS()) {
+      console.warn(
+        '[MidiService] iOS / iPadOS 当前浏览器不支持 Web MIDI API。' +
+          '建议方案：① 使用支持 Web MIDI 的第三方浏览器（如 Midori via TestFlight）' +
+          '② 使用蓝牙 MIDI 桥接 App（如 MIDI Wrench）+ 网络回环' +
+          '③ 使用桌面端 Chrome / Edge 浏览器'
+      );
+    }
+
+    this.lastInitResult = 'notSupported';
+    return 'notSupported';
   }
 
   /**
@@ -181,7 +216,8 @@ class MidiService {
     }
 
     this.selectedInput = input;
-    this.selectedInput.onmidimessage = this.handleMidiMessage.bind(this);
+    // 非空断言：前面已确认 input 存在并赋值
+    this.selectedInput!.onmidimessage = this.handleMidiMessage.bind(this);
 
     console.log('[MidiService] 已选择设备:', input.name, 'state:', input.state);
     console.log('[MidiService] 已绑定 onmidimessage:', input.name);
