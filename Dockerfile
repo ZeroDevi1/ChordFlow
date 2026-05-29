@@ -48,6 +48,9 @@ COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 COPY --from=builder /app/packages/backend/dist ./packages/backend/dist
 COPY --from=builder /app/packages/frontend/dist ./packages/frontend/dist
 
+# 预下载依赖到全局 store，使 --offline 可命中缓存
+RUN pnpm fetch
+
 # 仅安装生产依赖
 # npm_config_minimum_release_age=0 跳过 supply-chain 发布时间校验
 ENV npm_config_minimum_release_age=0

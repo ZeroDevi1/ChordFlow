@@ -49,9 +49,6 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 设置 QEMU（多架构支持）
-        uses: docker/setup-qemu-action@v3
-
       - name: 设置 Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -73,13 +70,13 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
 
-      - name: 构建并推送镜像（多架构）
+      - name: 构建并推送镜像
         id: push
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
