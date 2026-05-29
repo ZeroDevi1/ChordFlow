@@ -34,8 +34,9 @@ FROM node:22-alpine AS production
 
 WORKDIR /app
 
-# 安装 pnpm（用于安装生产依赖）
-RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
+# 安装 pnpm（用于安装生产依赖）及 openssl（生成自签名证书）
+RUN apk add --no-cache openssl \
+    && corepack enable && corepack prepare pnpm@10.33.0 --activate
 
 # 复制工作区配置（pnpm 需要这些来正确解析 workspace 包）
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .npmrc ./
