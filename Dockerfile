@@ -53,7 +53,9 @@ RUN pnpm fetch
 
 # 仅安装生产依赖
 # npm_config_minimum_release_age=0 跳过 supply-chain 发布时间校验
+# CI=true 避免 pnpm 10.x 在无 TTY 环境下因清理 node_modules 而中止
 ENV npm_config_minimum_release_age=0
+ENV CI=true
 RUN pnpm install --frozen-lockfile --prod --offline
 
 # 后端端口
