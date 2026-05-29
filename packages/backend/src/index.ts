@@ -8,9 +8,9 @@ import { readFileSync, existsSync } from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// 证书路径：优先使用环境变量，否则使用默认路径
-const certPath = process.env.TLS_CERT_PATH || join(__dirname, '../../certs/cert.pem');
-const keyPath = process.env.TLS_KEY_PATH || join(__dirname, '../../certs/key.pem');
+// 证书路径：优先使用环境变量，否则使用默认路径（__dirname 为 dist/，需往上三级到 /app）
+const certPath = process.env.TLS_CERT_PATH || join(__dirname, '../../../certs/cert.pem');
+const keyPath = process.env.TLS_KEY_PATH || join(__dirname, '../../../certs/key.pem');
 
 // 检测证书是否存在，存在则启用 HTTPS
 const hasCerts = existsSync(certPath) && existsSync(keyPath);
